@@ -46,19 +46,14 @@
             border-radius: 16px;
             box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
             overflow: hidden;
-            width: 100%;
-            height: 100%;
         }
         
         .item {
             position: absolute;
-            width: 118px;
-            height: 118px;
+            width: 118px; height: 118px;
             border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
             font-size: 38px;
             cursor: pointer;
             user-select: none;
@@ -123,80 +118,48 @@
             
             <div>
                 <h3 style="margin:8px 0; color:var(--gold);">玄学升级</h3>
-                <button id="upgradeSpawnBtn" style="background:#1e5c2b; width:100%;">减少生成间隔<br><small id="spawnCost">¥200</small></button>
-                <button id="upgradeStartLevelBtn" style="background:#1e5c2b; width:100%;">提升初始品阶<br><small id="startLevelCost">¥400</small></button>
+                <button id="upgradeSpawnBtn" style="background:#1e5c2b;width:100%;">减少生成间隔<br><small id="spawnCost">¥200</small></button>
+                <button id="upgradeStartLevelBtn" style="background:#1e5c2b;width:100%;">提升初始品阶<br><small id="startLevelCost">¥400</small></button>
             </div>
             
             <button id="mergeBtn" style="background:#9c2a2a; font-size:20px; padding:18px;">🔄 全部可融合灵器</button>
             <button id="saveBtn">💾 保存进度</button>
             <button id="loadBtn">📂 加载进度</button>
             
-            <div class="log" id="log">玄风合宝已启动...</div>
+            <div class="log" id="log">欢迎来到玄风合宝...</div>
         </div>
     </div>
 
     <script>
-        // ================ BIG NUMBER SYSTEM ================
+        // ================== BIG NUMBER SYSTEM (Stable) ==================
         class BigNumber {
-            constructor(value = 0) {
-                this.mantissa = 0; // 1.0 ~ 9.99...
-                this.exponent = 0;
-                this.set(value);
+            constructor(v = 0) {
+                this.m = 0; this.e = 0;
+                this.set(v);
             }
-            
-            set(value) {
-                if (value === 0) {
-                    this.mantissa = 0;
-                    this.exponent = 0;
-                    return;
-                }
-                const str = value.toExponential();
-                const parts = str.split('e');
-                this.mantissa = parseFloat(parts[0]);
-                this.exponent = parseInt(parts[1]);
+            set(v) {
+                if (v === 0) return;
+                const s = v.toExponential(8).split('e');
+                this.m = parseFloat(s[0]);
+                this.e = parseInt(s[1]);
             }
-            
-            add(other) {
-                if (typeof other === 'number') other = new BigNumber(other);
-                if (this.exponent === 0 && other.exponent === 0) {
-                    this.set(this.mantissa + other.mantissa);
-                    return;
-                }
-                const diff = this.exponent - other.exponent;
-                if (diff > 10) return;
-                if (diff < -10) {
-                    this.mantissa = other.mantissa;
-                    this.exponent = other.exponent;
-                    return;
-                }
-                const scaled = other.mantissa * Math.pow(10, diff);
-                this.mantissa += scaled;
-                if (this.mantissa >= 10) {
-                    this.mantissa /= 10;
-                    this.exponent++;
-                }
+            add(v) {
+                let o = v instanceof BigNumber ? v : new BigNumber(v);
+                if (this.e - o.e > 20) return;
+                if (o.e - this.e > 20) { this.m = o.m; this.e = o.e; return; }
+                const diff = this.e - o.e;
+                this.m += o.m * Math.pow(10, diff);
+                while (this.m >= 10) { this.m /= 10; this.e++; }
+                while (this.m < 1 && this.m > 0) { this.m *= 10; this.e--; }
             }
-            
-            multiply(factor) {
-                this.mantissa *= factor;
-                while (this.mantissa >= 10) {
-                    this.mantissa /= 10;
-                    this.exponent++;
-                }
-                while (this.mantissa < 1 && this.mantissa > 0) {
-                    this.mantissa *= 10;
-                    this.exponent--;
-                }
+            multiply(f) {
+                this.m *= f;
+                while (this.m >= 10) { this.m /= 10; this.e++; }
             }
-            
+            valueOf() { return this.m * Math.pow(10, this.e); }
             toString() {
-                if (this.exponent === 0 && this.mantissa === 0) return "0";
-                if (this.exponent < 9) return Math.floor(this.mantissa * Math.pow(10, this.exponent)).toLocaleString('zh-CN');
-                return this.mantissa.toFixed(2) + "e" + this.exponent;
-            }
-            
-            valueOf() {
-                return this.mantissa * Math.pow(10, this.exponent);
+                if (this.e < 9) return Math.floor(this.m * Math.pow(10, this.e)).toLocaleString('zh-CN');
+                return this.m.toFixed(2) + "e" + this.e;
             }
         }
 
@@ -216,41 +179,37 @@
         const logEl = document.getElementById('log');
         
         const itemEmojis = ['🔮','🀄','🐉','🐦‍🔥','☯️','🧿','📿','🪔','🌿','💎','🐢','🦋','🌙','⭐','🪬','🀋','🌟'];
-        
-        const levelColors = ["#1e88e5","#43a047","#f9a825","#e64a19","#c2185b","#8e24aa","#00acc1","#ffb300","#d84315","#6d4c41","#3949ab","#1a237e"];
-        
-        function formatNumber(bn) {
-            return bn.toString();
-        }
-        
+        const levelColors = ["#1e88e5","#43a047","#f9a825","#e64a19","#c2185b","#8e24aa","#00acc1","#ffb300","#d84315","#6d4c41","#3949ab"];
+
+        function formatNumber(bn) { return bn.toString(); }
+
         function addLog(msg) {
             const time = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
             logEl.innerHTML += `<br>[${time}] ${msg}`;
             logEl.scrollTop = logEl.scrollHeight;
         }
-        
-        // 3 per row, 10 rows possible (larger board)
+
         function getGridPosition(index) {
             const cols = 3;
             const size = 145;
             const offsetX = 70;
             const offsetY = 60;
-            const col = index % cols;
-            const row = Math.floor(index / cols);
-            return { x: offsetX + col * size, y: offsetY + row * size };
+            return {
+                x: offsetX + (index % cols) * size,
+                y: offsetY + Math.floor(index / cols) * size
+            };
         }
-        
+
         function repackBoard() {
             items.forEach((item, i) => {
                 const pos = getGridPosition(i);
-                item.style.left = `${pos.x}px`;
-                item.style.top = `${pos.y}px`;
+                item.style.left = pos.x + 'px';
+                item.style.top = pos.y + 'px';
             });
         }
-        
+
         function createItem(level = null) {
             if (items.length >= maxItems) return null;
-            
             level = level || startSpawnLevel;
             const pos = getGridPosition(items.length);
             
@@ -261,12 +220,7 @@
             const emoji = itemEmojis[(level-1) % itemEmojis.length];
             const income = Math.pow(3, level-1);
             
-            item.innerHTML = `
-                ${emoji}<br>
-                <small>Lv.${level}</small><br>
-                <span class="income" style="font-size:13px;">+${income}/s</span>
-            `;
-            
+            item.innerHTML = `${emoji}<br><small>Lv.${level}</small><br><span style="font-size:13px;">+${income}/s</span>`;
             item.style.backgroundColor = levelColors[(level-1) % levelColors.length];
             item.style.left = `${pos.x}px`;
             item.style.top = `${pos.y}px`;
@@ -276,26 +230,25 @@
             updateStats();
             return item;
         }
-        
-        function upgradeAllLowerItems(newMinLevel) {
+
+        function upgradeAllLowerItems(newLevel) {
             items.forEach(item => {
-                let current = parseInt(item.dataset.level);
-                if (current < newMinLevel) {
-                    item.dataset.level = newMinLevel;
-                    const emoji = itemEmojis[(newMinLevel-1) % itemEmojis.length];
-                    const income = Math.pow(3, newMinLevel-1);
-                    item.innerHTML = `${emoji}<br><small>Lv.${newMinLevel}</small><br><span class="income" style="font-size:13px;">+${income}/s</span>`;
-                    item.style.backgroundColor = levelColors[(newMinLevel-1) % levelColors.length];
+                if (parseInt(item.dataset.level) < newLevel) {
+                    item.dataset.level = newLevel;
+                    const emoji = itemEmojis[(newLevel-1) % itemEmojis.length];
+                    const inc = Math.pow(3, newLevel-1);
+                    item.innerHTML = `${emoji}<br><small>Lv.${newLevel}</small><br><span style="font-size:13px;">+${inc}/s</span>`;
+                    item.style.backgroundColor = levelColors[(newLevel-1) % levelColors.length];
                 }
             });
         }
-        
+
         function mergeAllPossible() {
             let mergedAny = false;
             let totalReward = new BigNumber(0);
             
             while (true) {
-                let mergedThisPass = false;
+                let did = false;
                 for (let i = 0; i < items.length; i++) {
                     for (let j = i+1; j < items.length; j++) {
                         if (parseInt(items[i].dataset.level) === parseInt(items[j].dataset.level)) {
@@ -304,32 +257,23 @@
                             totalReward.add(reward);
                             rmb.add(reward);
                             
-                            const item1 = items[i];
-                            const item2 = items[j];
-                            items.splice(j, 1);
-                            items.splice(i, 1);
-                            item1.remove();
-                            item2.remove();
-                            
+                            items[i].remove(); items[j].remove();
+                            items.splice(j,1); items.splice(i,1);
                             createItem(lvl + 1);
-                            mergedThisPass = true;
-                            mergedAny = true;
+                            did = true; mergedAny = true;
                             break;
                         }
                     }
-                    if (mergedThisPass) break;
+                    if (did) break;
                 }
-                if (!mergedThisPass) break;
+                if (!did) break;
             }
-            
             repackBoard();
             updateRMB();
             updateStats();
-            
             if (mergedAny) addLog(`✨ 大融合完成！获得 ${formatNumber(totalReward)} ¥`);
-            else addLog("暂无相同品阶灵器可融合");
         }
-        
+
         let spawnInterval;
         function startAutoSpawn() {
             if (spawnInterval) clearInterval(spawnInterval);
@@ -345,125 +289,102 @@
                 document.getElementById('timer').textContent = (spawnTimerLeft / 1000).toFixed(1);
             }, 50);
         }
-        
+
         function updateUpgradeButtons() {
-            const spawnBtn = document.getElementById('upgradeSpawnBtn');
-            const startBtn = document.getElementById('upgradeStartLevelBtn');
-            spawnBtn.style.backgroundColor = rmb.valueOf() >= spawnCost.valueOf() ? "#27ae60" : "#555";
-            startBtn.style.backgroundColor = rmb.valueOf() >= startLevelCost.valueOf() ? "#27ae60" : "#555";
+            document.getElementById('upgradeSpawnBtn').style.backgroundColor = (rmb.valueOf() >= spawnCost.valueOf()) ? "#27ae60" : "#555";
+            document.getElementById('upgradeStartLevelBtn').style.backgroundColor = (rmb.valueOf() >= startLevelCost.valueOf()) ? "#27ae60" : "#555";
         }
-        
-        // Extremely expensive exponential upgrades using power
+
+        // Upgrades
         document.getElementById('upgradeSpawnBtn').onclick = () => {
             if (rmb.valueOf() >= spawnCost.valueOf()) {
                 rmb = new BigNumber(rmb.valueOf() - spawnCost.valueOf());
                 spawnIntervalTime = Math.max(400, Math.floor(spawnIntervalTime * 0.72));
-                spawnCost = new BigNumber(Math.pow(spawnCost.valueOf(), 1.45)); // Very aggressive growth
+                spawnCost.multiply(2.45);
                 document.getElementById('spawnCost').textContent = `¥${formatNumber(spawnCost)}`;
                 startAutoSpawn();
                 updateRMB();
-                addLog(`生成间隔减少至 ${(spawnIntervalTime/1000).toFixed(1)}秒`);
+                addLog(`生成间隔减少`);
             }
         };
-        
+
         document.getElementById('upgradeStartLevelBtn').onclick = () => {
             if (rmb.valueOf() >= startLevelCost.valueOf()) {
                 rmb = new BigNumber(rmb.valueOf() - startLevelCost.valueOf());
                 startSpawnLevel++;
-                startLevelCost = new BigNumber(Math.pow(startLevelCost.valueOf(), 1.55)); // Even stronger growth
-                
+                startLevelCost.multiply(2.65);
                 document.getElementById('startLevelCost').textContent = `¥${formatNumber(startLevelCost)}`;
                 upgradeAllLowerItems(startSpawnLevel);
                 repackBoard();
                 updateRMB();
-                updateStats();
-                addLog(`初始品阶提升至 Lv.${startSpawnLevel}（所有低阶灵器已同步）`);
+                addLog(`初始品阶提升至 Lv.${startSpawnLevel}`);
             }
         };
-        
+
         document.getElementById('mergeBtn').onclick = mergeAllPossible;
-        
-        // Save / Load
+
+        // Save & Load
         document.getElementById('saveBtn').onclick = () => {
             const data = {
-                rmbMantissa: rmb.mantissa,
-                rmbExponent: rmb.exponent,
-                spawnIntervalTime,
-                startSpawnLevel,
-                spawnCostMantissa: spawnCost.mantissa,
-                spawnCostExponent: spawnCost.exponent,
-                startLevelCostMantissa: startLevelCost.mantissa,
-                startLevelCostExponent: startLevelCost.exponent,
+                rmbM: rmb.m, rmbE: rmb.e,
+                spawnIntervalTime, startSpawnLevel,
+                spawnCM: spawnCost.m, spawnCE: spawnCost.e,
+                startCM: startLevelCost.m, startCE: startLevelCost.e,
                 items: items.map(i => parseInt(i.dataset.level))
             };
-            localStorage.setItem('fengshuiSave_v6', JSON.stringify(data));
-            addLog("💾 进度已保存（支持超大数字）");
+            localStorage.setItem('fengshuiSave_v8', JSON.stringify(data));
+            addLog("💾 进度已保存");
         };
-        
+
         document.getElementById('loadBtn').onclick = () => {
-            const data = JSON.parse(localStorage.getItem('fengshuiSave_v6'));
-            if (!data) return addLog("没有找到存档");
+            const d = JSON.parse(localStorage.getItem('fengshuiSave_v8'));
+            if (!d) return addLog("没有找到存档");
             
             items.forEach(i => i.remove());
             items = [];
             
-            rmb = new BigNumber(0);
-            rmb.mantissa = data.rmbMantissa || 0;
-            rmb.exponent = data.rmbExponent || 0;
+            rmb = new BigNumber(0); rmb.m = d.rmbM || 0; rmb.e = d.rmbE || 0;
+            spawnIntervalTime = d.spawnIntervalTime || 5000;
+            startSpawnLevel = d.startSpawnLevel || 1;
             
-            spawnIntervalTime = data.spawnIntervalTime || 5000;
-            startSpawnLevel = data.startSpawnLevel || 1;
+            spawnCost = new BigNumber(0); spawnCost.m = d.spawnCM || 200; spawnCost.e = d.spawnCE || 0;
+            startLevelCost = new BigNumber(0); startLevelCost.m = d.startCM || 400; startLevelCost.e = d.startCE || 0;
             
-            spawnCost = new BigNumber(0);
-            spawnCost.mantissa = data.spawnCostMantissa || 200;
-            spawnCost.exponent = data.spawnCostExponent || 0;
+            if (d.items) d.items.forEach(lvl => createItem(lvl));
             
-            startLevelCost = new BigNumber(0);
-            startLevelCost.mantissa = data.startLevelCostMantissa || 400;
-            startLevelCost.exponent = data.startLevelCostExponent || 0;
-            
-            if (data.items) data.items.forEach(lvl => createItem(lvl));
-            
-            updateRMB();
-            updateStats();
-            document.getElementById('spawnCost').textContent = `¥${formatNumber(spawnCost)}`;
-            document.getElementById('startLevelCost').textContent = `¥${formatNumber(startLevelCost)}`;
-            startAutoSpawn();
+            updateRMB(); updateStats(); startAutoSpawn();
             addLog("📂 进度已加载");
         };
-        
+
         function updateRMB() {
             document.getElementById('rmb').textContent = formatNumber(rmb);
             updateUpgradeButtons();
         }
-        
+
         function updateStats() {
             document.getElementById('totalItems').textContent = items.length;
             let max = 1;
             items.forEach(i => max = Math.max(max, parseInt(i.dataset.level)));
             document.getElementById('maxLevel').textContent = max;
         }
-        
-        // Income tick
+
+        // Income
         setInterval(() => {
-            let totalIncome = 0;
-            items.forEach(item => {
-                const lvl = parseInt(item.dataset.level);
-                totalIncome += Math.pow(3, lvl - 1);
-            });
-            document.getElementById('income').textContent = formatNumber(new BigNumber(totalIncome));
-            rmb.add(totalIncome / 10);
+            let total = 0;
+            items.forEach(item => total += Math.pow(3, parseInt(item.dataset.level) - 1));
+            rmb.add(total / 10);
+            document.getElementById('income').textContent = formatNumber(new BigNumber(total));
             updateRMB();
-        }, 50);
-        
+        }, 100);
+
         function initGame() {
             for (let i = 0; i < 3; i++) createItem(1);
             updateRMB();
             updateStats();
             startAutoSpawn();
-            addLog("欢迎来到玄风合宝！升级现在使用指数增长，数字可无限增长。");
+            addLog("玄风合宝已完全启动！祝你财运亨通，风生水起！");
         }
-        
+
         window.onload = initGame;
     </script>
 </body>
