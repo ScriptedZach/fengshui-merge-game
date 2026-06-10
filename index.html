@@ -10,7 +10,6 @@
         :root {
             --gold: #ffd700;
             --red: #c8102e;
-            --dark: #1a0f08;
         }
         
         body {
@@ -27,12 +26,11 @@
         
         header {
             background: rgba(200, 16, 46, 0.9);
-            padding: 10px 20px;
+            padding: 12px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 4px solid var(--gold);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
         }
         
         h1 {
@@ -42,10 +40,10 @@
         }
         
         .currency {
-            font-size: 24px;
+            font-size: 26px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .game-container {
@@ -56,9 +54,8 @@
         
         #board {
             flex: 1;
-            background: 
-                radial-gradient(circle at 30% 40%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
-                url('https://picsum.photos/id/1015/1200/800') center/cover;
+            background: radial-gradient(circle at 30% 40%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
+                        url('https://picsum.photos/id/1015/1200/800') center/cover;
             position: relative;
             border: 8px solid #3c2a1f;
             margin: 15px;
@@ -69,29 +66,25 @@
         
         .item {
             position: absolute;
-            width: 85px;
-            height: 85px;
+            width: 88px;
+            height: 88px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 38px;
-            font-weight: bold;
+            font-size: 40px;
             cursor: pointer;
             user-select: none;
             transition: all 0.2s;
             box-shadow: 0 8px 20px rgba(0,0,0,0.6),
                         inset 0 0 20px rgba(255,255,255,0.4);
-            border: 5px solid var(--gold);
+            border: 6px solid var(--gold);
         }
         
-        .item:hover {
-            transform: scale(1.12);
-            z-index: 10;
-        }
+        .item:hover { transform: scale(1.15); z-index: 10; }
         
         .sidebar {
-            width: 300px;
+            width: 310px;
             background: rgba(26,15,8,0.95);
             padding: 15px;
             border-left: 4px solid var(--gold);
@@ -105,7 +98,7 @@
             background: var(--red);
             color: white;
             border: none;
-            padding: 14px 12px;
+            padding: 14px;
             font-size: 17px;
             font-family: 'Noto Serif SC', serif;
             cursor: pointer;
@@ -114,22 +107,20 @@
         }
         
         button:hover {
-            background: #ff2222;
+            background: #ff3333;
             transform: translateY(-2px);
         }
         
-        .upgrade {
-            background: #3c2a1f;
-        }
+        .upgrade { background: #3c2a1f; }
         
         .log {
             flex: 1;
             background: rgba(0,0,0,0.4);
             padding: 12px;
-            font-size: 14px;
+            font-size: 14.5px;
             overflow-y: auto;
             border-radius: 8px;
-            line-height: 1.4;
+            line-height: 1.5;
         }
         
         .stats { background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; }
@@ -157,23 +148,25 @@
             <button id="spawnInfo">自动生成中... (每 <span id="spawnTime">5</span> 秒)</button>
             
             <div>
-                <h3>升级</h3>
-                <button id="upgradeSpawnBtn" class="upgrade">减少生成间隔<br><small id="spawnCost">¥150</small></button>
-                <button id="upgradeStartLevelBtn" class="upgrade">提升初始品阶<br><small id="startLevelCost">¥300</small></button>
+                <h3>玄学升级</h3>
+                <button id="upgradeSpawnBtn" class="upgrade">减少生成间隔<br><small id="spawnCost">¥180</small></button>
+                <button id="upgradeStartLevelBtn" class="upgrade">提升初始品阶<br><small id="startLevelCost">¥350</small></button>
             </div>
             
             <button id="mergeBtn">🔄 融合选中灵器</button>
+            <button id="saveBtn">💾 保存进度</button>
+            <button id="loadBtn">📂 加载进度</button>
             
             <div class="log" id="log">
-                欢迎来到玄风合宝。<br>
-                相同品阶的灵器可融合进阶。<br>
-                风生水起，财源滚滚。
+                欢迎来到玄风合宝<br>
+                灵器将自动生成，融合相同品阶即可进阶。<br>
+                风生水起，财运亨通！
             </div>
         </div>
     </div>
 
     <script>
-        let rmb = 520;
+        let rmb = 880;
         let items = [];
         let nextId = 1;
         let maxItems = 30;
@@ -181,27 +174,27 @@
         // Spawn settings
         let spawnIntervalTime = 5000;
         let startSpawnLevel = 1;
-        let spawnCost = 150;
-        let startLevelCost = 300;
+        let spawnCost = 180;
+        let startLevelCost = 350;
         
         const board = document.getElementById('board');
         const rmbEl = document.getElementById('rmb');
         const logEl = document.getElementById('log');
         
-        const itemEmojis = ['🔮','🀄','🐉','🐦‍🔥','☯️','🧿','📿','🪔','🌿','💎','🐢','🦋','🌙','⭐','🪬','🀋'];
+        const itemEmojis = ['🔮','🀄','🐉','🐦‍🔥','☯️','🧿','📿','🪔','🌿','💎','🐢','🦋','🌙','⭐','🪬','🀋','🌟'];
         
         function addLog(message) {
             const time = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
             logEl.innerHTML += `<br>[${time}] ${message}`;
             logEl.scrollTop = logEl.scrollHeight;
-            if (logEl.children.length > 25) logEl.removeChild(logEl.children[0]);
+            if (logEl.children.length > 30) logEl.removeChild(logEl.children[0]);
         }
         
         function getPositionForNewItem() {
             const cols = 6;
-            const itemSize = 95;
-            const startX = 40;
-            const startY = 40;
+            const itemSize = 98;
+            const startX = 35;
+            const startY = 35;
             
             for (let i = 0; i < maxItems; i++) {
                 const col = i % cols;
@@ -209,22 +202,21 @@
                 const x = startX + col * itemSize;
                 const y = startY + row * itemSize;
                 
-                // Check if position is free
                 let occupied = false;
                 for (let item of items) {
                     const ix = parseFloat(item.style.left);
                     const iy = parseFloat(item.style.top);
-                    if (Math.abs(ix - x) < 50 && Math.abs(iy - y) < 50) {
+                    if (Math.abs(ix - x) < 60 && Math.abs(iy - y) < 60) {
                         occupied = true;
                         break;
                     }
                 }
                 if (!occupied) return {x, y};
             }
-            return null; // board full
+            return null;
         }
         
-        function createItem(level = null, force = false) {
+        function createItem(level = null) {
             if (items.length >= maxItems) return null;
             
             const pos = getPositionForNewItem();
@@ -232,16 +224,15 @@
             
             const item = document.createElement('div');
             item.className = `item level-${level || startSpawnLevel}`;
-            item.dataset.level = level || startSpawnLevel;
+            const lvl = level || startSpawnLevel;
+            item.dataset.level = lvl;
             item.dataset.id = nextId++;
             
-            const lvl = parseInt(item.dataset.level);
             const emoji = itemEmojis[(lvl-1) % itemEmojis.length];
             item.innerHTML = `<div>${emoji}<br><small>Lv.${lvl}</small></div>`;
             
             item.style.left = `${pos.x}px`;
             item.style.top = `${pos.y}px`;
-            
             item.addEventListener('click', () => toggleSelect(item));
             
             board.appendChild(item);
@@ -268,7 +259,6 @@
         }
         
         function mergeItems(item1, item2) {
-            if (!item1 || !item2) return;
             const level = parseInt(item1.dataset.level);
             if (parseInt(item2.dataset.level) !== level) {
                 addLog("⚠️ 只能融合同品阶的灵器");
@@ -298,9 +288,9 @@
             board.appendChild(newItem);
             items.push(newItem);
             
-            const reward = Math.floor(25 * level * level);
+            const reward = Math.floor(28 * level * level);
             rmb += reward;
-            addLog(`✨ 融合成功！ Lv.${level} → Lv.${newLevel}  获得 ${reward} ¥`);
+            addLog(`✨ 融合成功！ Lv.${level} → Lv.${newLevel}　获得 ${reward} ¥`);
             
             updateRMB();
             updateStats();
@@ -319,8 +309,8 @@
         document.getElementById('upgradeSpawnBtn').addEventListener('click', () => {
             if (rmb >= spawnCost) {
                 rmb -= spawnCost;
-                spawnIntervalTime = Math.max(800, Math.floor(spawnIntervalTime * 0.82));
-                spawnCost = Math.floor(spawnCost * 1.65);
+                spawnIntervalTime = Math.max(600, Math.floor(spawnIntervalTime * 0.83));
+                spawnCost = Math.floor(spawnCost * 1.68);
                 
                 document.getElementById('spawnCost').textContent = `¥${spawnCost}`;
                 document.getElementById('spawnTime').textContent = (spawnIntervalTime/1000).toFixed(1);
@@ -328,6 +318,8 @@
                 startAutoSpawn();
                 updateRMB();
                 addLog(`生成间隔减少至 ${(spawnIntervalTime/1000).toFixed(1)} 秒`);
+            } else {
+                addLog("人民币不足");
             }
         });
         
@@ -335,11 +327,13 @@
             if (rmb >= startLevelCost) {
                 rmb -= startLevelCost;
                 startSpawnLevel++;
-                startLevelCost = Math.floor(startLevelCost * 1.75);
+                startLevelCost = Math.floor(startLevelCost * 1.78);
                 
                 document.getElementById('startLevelCost').textContent = `¥${startLevelCost}`;
                 updateRMB();
                 addLog(`初始品阶提升至 Lv.${startSpawnLevel}`);
+            } else {
+                addLog("人民币不足");
             }
         });
         
@@ -347,9 +341,76 @@
             if (selectedItems.length === 2) {
                 mergeItems(selectedItems[0], selectedItems[1]);
             } else {
-                addLog("请点击选中两个同品阶的灵器");
+                addLog("请选择两个同品阶的灵器");
             }
         });
+        
+        // Save & Load
+        function saveGame() {
+            const gameData = {
+                rmb: rmb,
+                spawnIntervalTime: spawnIntervalTime,
+                startSpawnLevel: startSpawnLevel,
+                spawnCost: spawnCost,
+                startLevelCost: startLevelCost,
+                nextId: nextId,
+                items: items.map(item => ({
+                    level: parseInt(item.dataset.level),
+                    left: item.style.left,
+                    top: item.style.top
+                }))
+            };
+            localStorage.setItem('fengshuiMergeSave', JSON.stringify(gameData));
+            addLog("💾 进度已保存");
+        }
+        
+        function loadGame() {
+            const saved = localStorage.getItem('fengshuiMergeSave');
+            if (!saved) {
+                addLog("没有找到存档");
+                return;
+            }
+            
+            const data = JSON.parse(saved);
+            rmb = data.rmb || 880;
+            spawnIntervalTime = data.spawnIntervalTime || 5000;
+            startSpawnLevel = data.startSpawnLevel || 1;
+            spawnCost = data.spawnCost || 180;
+            startLevelCost = data.startLevelCost || 350;
+            nextId = data.nextId || 1;
+            
+            // Clear current items
+            items.forEach(i => i.remove());
+            items = [];
+            
+            if (data.items) {
+                data.items.forEach(it => {
+                    const item = document.createElement('div');
+                    item.className = `item level-${it.level}`;
+                    item.dataset.level = it.level;
+                    item.dataset.id = nextId++;
+                    const emoji = itemEmojis[(it.level-1) % itemEmojis.length];
+                    item.innerHTML = `<div>${emoji}<br><small>Lv.${it.level}</small></div>`;
+                    item.style.left = it.left;
+                    item.style.top = it.top;
+                    item.addEventListener('click', () => toggleSelect(item));
+                    board.appendChild(item);
+                    items.push(item);
+                });
+            }
+            
+            updateRMB();
+            updateStats();
+            document.getElementById('spawnCost').textContent = `¥${spawnCost}`;
+            document.getElementById('startLevelCost').textContent = `¥${startLevelCost}`;
+            document.getElementById('spawnTime').textContent = (spawnIntervalTime/1000).toFixed(1);
+            
+            startAutoSpawn();
+            addLog("📂 进度已加载");
+        }
+        
+        document.getElementById('saveBtn').addEventListener('click', saveGame);
+        document.getElementById('loadBtn').addEventListener('click', loadGame);
         
         function updateRMB() {
             rmbEl.textContent = Math.floor(rmb).toLocaleString('zh-CN');
@@ -366,30 +427,24 @@
         }
         
         // Passive income
-        function calculateIncome() {
-            let total = 0;
+        setInterval(() => {
+            let income = 0;
             items.forEach(item => {
                 const lvl = parseInt(item.dataset.level);
-                total += Math.pow(lvl, 1.7) * 0.6;
+                income += Math.pow(lvl, 1.75) * 0.55;
             });
-            return Math.floor(total);
-        }
-        
-        setInterval(() => {
-            const income = calculateIncome();
-            document.getElementById('income').textContent = income;
-            rmb += income / 10;
+            const incomePerSec = Math.floor(income);
+            document.getElementById('income').textContent = incomePerSec;
+            rmb += incomePerSec / 10;
             updateRMB();
         }, 100);
         
-        // Initial setup
+        // Init
         function initGame() {
-            for (let i = 0; i < 4; i++) {
-                createItem(1);
-            }
+            for (let i = 0; i < 5; i++) createItem(1);
             updateRMB();
             startAutoSpawn();
-            addLog("玄风合宝已开启。灵器将自动生成，祝你财运亨通！");
+            addLog("玄风合宝已开启，灵器自动生成中...");
         }
         
         window.onload = initGame;
