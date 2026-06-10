@@ -21,7 +21,7 @@
         }
         
         header {
-            background: rgba(200, 16, 46, 0.9);
+            background: rgba(200, 16, 46, 0.95);
             padding: 12px 20px;
             display: flex;
             justify-content: space-between;
@@ -54,18 +54,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 34px;
             cursor: pointer;
             user-select: none;
-            transition: all 0.25s;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.7), inset 0 0 25px rgba(255,255,255,0.5);
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.8), inset 0 0 25px rgba(255,255,255,0.5);
             border: 6px solid var(--gold);
             flex-direction: column;
             color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+            font-weight: bold;
         }
         
-        .item:hover { transform: scale(1.18); z-index: 20; }
+        .item:hover { transform: scale(1.22); z-index: 30; }
         
         .sidebar {
             width: 340px;
@@ -85,6 +86,7 @@
             border-radius: 8px;
             transition: all 0.2s;
             border: none;
+            font-family: 'Noto Serif SC', serif;
         }
         button:hover { transform: translateY(-2px); }
         
@@ -126,7 +128,7 @@
             <button id="saveBtn">💾 保存进度</button>
             <button id="loadBtn">📂 加载进度</button>
             
-            <div class="log" id="log">游戏启动中...</div>
+            <div class="log" id="log">游戏已启动...</div>
         </div>
     </div>
 
@@ -143,24 +145,22 @@
         let startLevelCost = 350;
         
         const board = document.getElementById('board');
+        const logEl = document.getElementById('log');
+        
         const itemEmojis = ['🔮','🀄','🐉','🐦‍🔥','☯️','🧿','📿','🪔','🌿','💎','🐢','🦋','🌙','⭐','🪬','🀋','🌟'];
         
-        // Level colors (rich backgrounds)
         const levelColors = [
-            "#4a90e2", "#2ecc71", "#f1c40f", "#e67e22", "#e74c3c",
-            "#9b59b6", "#1abc9c", "#f39c12", "#d35400", "#c0392b"
+            "#3498db","#2ecc71","#f1c40f","#e67e22","#e74c3c",
+            "#9b59b6","#1abc9c","#f39c12","#d35400","#c0392b",
+            "#8e44ad","#16a085","#f39c12","#c0392b","#2c3e50"
         ];
-        
-        function getLevelColor(level) {
-            return levelColors[(level-1) % levelColors.length];
-        }
         
         function addLog(msg) {
             const time = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
             logEl.innerHTML += `<br>[${time}] ${msg}`;
             logEl.scrollTop = logEl.scrollHeight;
+            if (logEl.children.length > 35) logEl.removeChild(logEl.children[0]);
         }
-        const logEl = document.getElementById('log');
         
         function getGridPosition(index) {
             const cols = 6;
@@ -172,7 +172,7 @@
             return { x: offsetX + col * size, y: offsetY + row * size };
         }
         
-        function repackItems() {
+        function repackBoard() {
             items.forEach((item, index) => {
                 const pos = getGridPosition(index);
                 item.style.left = pos.x + 'px';
@@ -187,13 +187,20 @@
             const pos = getGridPosition(items.length);
             
             const item = document.createElement('div');
-            item.className = `item`;
+            item.className = 'item';
             item.dataset.level = level;
             item.dataset.id = nextId++;
             
-            const emoji = itemEmojis[(level-1) % itemEmojis.length];
-            item.innerHTML = `${emoji}<br><small>Lv.${level}</small><br><span style="font-size:11px;">+${Math.pow(3, level-1)}/s</span>`;
-            item.style.backgroundColor = getLevelColor(level);
+            const emoji = itemEmojis[(level - 1) % itemEmojis.length];
+            const income = Math.pow(3, level - 1);
+            
+            item.innerHTML = `
+                ${emoji}<br>
+                <small>Lv.${level}</small><br>
+                <span style="font-size:11px; opacity:0.9;">+${income}/s</span>
+            `;
+            
+            item.style.backgroundColor = levelColors[(level - 1) % levelColors.length];
             
             item.style.left = pos.x + 'px';
             item.style.top = pos.y + 'px';
@@ -206,84 +213,85 @@
         }
         
         function mergeAllPossible() {
-            let merged = true;
+            let didMerge = false;
             let totalReward = 0;
             
-            while (merged) {
-                merged = false;
-                for (let i = 0; i < items.length - 1; i++) {
+            // Keep merging while possible
+            while (true) {
+                let mergedThisLoop = false;
+                for (let i = 0; i < items.length; i++) {
                     for (let j = i + 1; j < items.length; j++) {
                         if (parseInt(items[i].dataset.level) === parseInt(items[j].dataset.level)) {
                             const lvl = parseInt(items[i].dataset.level);
-                            const reward = Math.pow(3, lvl - 1) * 8; // nice reward
+                            const reward = Math.pow(3, lvl - 1) * 12;
                             totalReward += reward;
                             rmb += reward;
                             
-                            // Remove two items
                             const item1 = items[i];
                             const item2 = items[j];
+                            
                             items.splice(j, 1);
                             items.splice(i, 1);
                             item1.remove();
                             item2.remove();
                             
-                            // Create new higher level
                             createItem(lvl + 1);
-                            merged = true;
+                            mergedThisLoop = true;
+                            didMerge = true;
                             break;
                         }
                     }
-                    if (merged) break;
+                    if (mergedThisLoop) break;
                 }
+                if (!mergedThisLoop) break;
             }
             
-            if (totalReward > 0) {
-                addLog(`✨ 大融合完成！获得 ${Math.floor(totalReward)} ¥`);
-            } else {
-                addLog("当前没有可融合的灵器");
-            }
-            
-            repackItems();
+            repackBoard();
             updateRMB();
             updateStats();
+            
+            if (didMerge) {
+                addLog(`✨ 批量融合完成！获得 ${Math.floor(totalReward)} ¥`);
+            } else {
+                addLog("当前没有可融合的相同品阶灵器");
+            }
         }
         
-        // Auto spawn timer
-        let spawnTimer;
+        // Auto Spawn Timer
+        let spawnInterval;
         function startAutoSpawn() {
-            if (spawnTimer) clearInterval(spawnTimer);
+            if (spawnInterval) clearInterval(spawnInterval);
             spawnTimerLeft = spawnIntervalTime;
             
-            spawnTimer = setInterval(() => {
-                spawnTimerLeft -= 100;
+            spawnInterval = setInterval(() => {
+                spawnTimerLeft -= 50;
                 if (spawnTimerLeft <= 0) {
                     createItem();
                     spawnTimerLeft = spawnIntervalTime;
+                    repackBoard();
                 }
                 document.getElementById('timer').textContent = (spawnTimerLeft / 1000).toFixed(1);
-            }, 100);
+            }, 50);
         }
         
-        // Upgrade buttons styling
         function updateUpgradeButtons() {
             const spawnBtn = document.getElementById('upgradeSpawnBtn');
             const startBtn = document.getElementById('upgradeStartLevelBtn');
             
-            spawnBtn.style.background = rmb >= spawnCost ? "#27ae60" : "#555";
-            startBtn.style.background = rmb >= startLevelCost ? "#27ae60" : "#555";
+            spawnBtn.style.backgroundColor = rmb >= spawnCost ? "#27ae60" : "#555555";
+            startBtn.style.backgroundColor = rmb >= startLevelCost ? "#27ae60" : "#555555";
         }
         
         // Upgrades
         document.getElementById('upgradeSpawnBtn').onclick = () => {
             if (rmb >= spawnCost) {
                 rmb -= spawnCost;
-                spawnIntervalTime = Math.max(600, Math.floor(spawnIntervalTime * 0.80));
-                spawnCost = Math.floor(spawnCost * 1.85);
+                spawnIntervalTime = Math.max(500, Math.floor(spawnIntervalTime * 0.78));
+                spawnCost = Math.floor(spawnCost * 1.9);
                 document.getElementById('spawnCost').textContent = `¥${spawnCost}`;
                 startAutoSpawn();
                 updateRMB();
-                updateUpgradeButtons();
-                addLog(`生成间隔减少至 ${(spawnIntervalTime/1000).toFixed(1)}秒`);
+                addLog(`生成间隔减少 → ${(spawnIntervalTime/1000).toFixed(1)}秒`);
             }
         };
         
@@ -291,28 +299,31 @@
             if (rmb >= startLevelCost) {
                 rmb -= startLevelCost;
                 startSpawnLevel++;
-                startLevelCost = Math.floor(startLevelCost * 2.0);
+                startLevelCost = Math.floor(startLevelCost * 2.1);
                 document.getElementById('startLevelCost').textContent = `¥${startLevelCost}`;
                 updateRMB();
-                updateUpgradeButtons();
-                addLog(`初始品阶提升至 Lv.${startSpawnLevel}`);
+                addLog(`初始灵器品阶提升至 Lv.${startSpawnLevel}`);
             }
         };
         
         document.getElementById('mergeBtn').onclick = mergeAllPossible;
         
-        // Save / Load
+        // Save & Load
         document.getElementById('saveBtn').onclick = () => {
             const saveData = {
-                rmb, spawnIntervalTime, startSpawnLevel, spawnCost, startLevelCost,
+                rmb: rmb,
+                spawnIntervalTime: spawnIntervalTime,
+                startSpawnLevel: startSpawnLevel,
+                spawnCost: spawnCost,
+                startLevelCost: startLevelCost,
                 items: items.map(item => parseInt(item.dataset.level))
             };
-            localStorage.setItem('fengshuiSave_v2', JSON.stringify(saveData));
-            addLog("💾 进度已保存");
+            localStorage.setItem('fengshuiSave_v3', JSON.stringify(saveData));
+            addLog("💾 游戏进度已保存");
         };
         
         document.getElementById('loadBtn').onclick = () => {
-            const data = JSON.parse(localStorage.getItem('fengshuiSave_v2'));
+            const data = JSON.parse(localStorage.getItem('fengshuiSave_v3'));
             if (!data) return addLog("没有找到存档");
             
             items.forEach(i => i.remove());
@@ -324,7 +335,9 @@
             spawnCost = data.spawnCost || 180;
             startLevelCost = data.startLevelCost || 350;
             
-            if (data.items) data.items.forEach(lvl => createItem(lvl));
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach(lvl => createItem(lvl));
+            }
             
             updateRMB();
             updateStats();
@@ -341,15 +354,15 @@
         
         function updateStats() {
             document.getElementById('totalItems').textContent = items.length;
-            let max = 1;
+            let maxLvl = 1;
             items.forEach(i => {
-                const l = parseInt(i.dataset.level);
-                if (l > max) max = l;
+                const lvl = parseInt(i.dataset.level);
+                if (lvl > maxLvl) maxLvl = lvl;
             });
-            document.getElementById('maxLevel').textContent = max;
+            document.getElementById('maxLevel').textContent = maxLvl;
         }
         
-        // Passive income
+        // Income per second
         setInterval(() => {
             let totalIncome = 0;
             items.forEach(item => {
@@ -357,19 +370,22 @@
                 totalIncome += Math.pow(3, lvl - 1);
             });
             document.getElementById('income').textContent = Math.floor(totalIncome);
-            rmb += totalIncome / 10;
+            rmb += totalIncome / 20;   // smoother income
             updateRMB();
-        }, 100);
+        }, 50);
         
-        // Init
-        function init() {
-            for (let i = 0; i < 5; i++) createItem(1);
+        // Initialize Game
+        function initGame() {
+            for (let i = 0; i < 5; i++) {
+                createItem(1);
+            }
             updateRMB();
+            updateStats();
             startAutoSpawn();
-            addLog("玄风合宝已启动！点击“全部可融合灵器”进行批量融合");
+            addLog("欢迎来到玄风合宝！灵器会自动生成，点击「全部可融合灵器」进行批量融合");
         }
         
-        window.onload = init;
+        window.onload = initGame;
     </script>
 </body>
 </html>
