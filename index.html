@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玄风合宝 - 风水玄学合并放置游戏</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
+        
+        :root {
+            --gold: #ffd700;
+            --red: #c8102e;
+            --dark: #1a0f08;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(#0f0a05, #2c1e14);
+            color: #eeddaa;
+            font-family: 'Noto Serif SC', serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: rgba(200, 16, 46, 0.9);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--gold);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            text-shadow: 0 0 10px var(--gold);
+        }
+        
+        .currency {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .game-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        #board {
+            flex: 1;
+            background: 
+                radial-gradient(circle at 30% 40%, rgba(255, 215, 0, 0.15) 0%, transparent 50%),
+                url('https://picsum.photos/id/1015/1200/800') center/cover;
+            position: relative;
+            border: 8px solid #3c2a1f;
+            margin: 15px;
+            border-radius: 12px;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+        
+        .item {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6),
+                        inset 0 0 20px rgba(255,255,255,0.4);
+            border: 6px solid var(--gold);
+        }
+        
+        .item:hover {
+            transform: scale(1.15);
+            z-index: 10;
+        }
+        
+        .level-1 { background: linear-gradient(#a0d8ff, #2080c0); }
+        .level-2 { background: linear-gradient(#b0ff80, #40a020); }
+        .level-3 { background: linear-gradient(#ffd080, #e08000); }
+        .level-4 { background: linear-gradient(#ff80b0, #c02060); }
+        .level-5 { background: linear-gradient(#c0c0ff, #6060ff); }
+        
+        .sidebar {
+            width: 280px;
+            background: rgba(26,15,8,0.95);
+            padding: 15px;
+            border-left: 4px solid var(--gold);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        button {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 18px;
+            font-family: 'Noto Serif SC', serif;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #ff2222;
+            transform: translateY(-2px);
+        }
+        
+        .stats {
+            background: rgba(0,0,0,0.4);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .log {
+            flex: 1;
+            background: rgba(0,0,0,0.4);
+            padding: 10px;
+            font-size: 14px;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🀄 玄风合宝 🀄</h1>
+        <div class="currency">
+            <span>💰 人民币</span>
+            <span id="rmb">0</span>
+        </div>
+        <div>风水等级 <span id="fengLevel">1</span></div>
+    </header>
+    
+    <div class="game-container">
+        <div id="board"></div>
+        
+        <div class="sidebar">
+            <button id="spawnBtn">召唤初级灵器 (¥50)</button>
+            <button id="mergeBtn">🔄 强制融合选中灵器</button>
+            <button id="autoMergeBtn">开启自动融合 (¥800)</button>
+            
+            <div class="stats">
+                <h3>玄学统计</h3>
+                <p>总灵器: <span id="totalItems">0</span></p>
+                <p>最高品阶: <span id="maxLevel">1</span></p>
+                <p>每秒收入: <span id="income">0</span> ¥</p>
+            </div>
+            
+            <div>
+                <h3>升级</h3>
+                <button id="upgradeQiBtn">提升气场 (+10% 收入) ¥200</button>
+            </div>
+            
+            <div class="log" id="log">
+                欢迎来到玄风合宝。<br>
+                融合相同品阶的灵器，感悟更高玄机。<br>
+                风水生财，气运自来。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let rmb = 420;
+        let items = [];
+        let nextId = 1;
+        let autoMergeEnabled = false;
+        let qiMultiplier = 1;
+        let incomePerSecond = 0;
+        
+        const board = document.getElementById('board');
+        const rmbEl = document.getElementById('rmb');
+        const logEl = document.getElementById('log');
+        
+        // Item emojis with Feng Shui / Xuanxue theme
+        const itemEmojis = [
+            '🔮', '🀄', '🐉', '🐦‍🔥', '☯️', '🧿', '📿', '🪔', '🌿', '💎',
+            '🐢', '🦋', '🌙', '⭐', '🪬', '🧿', '🀋', '🎋'
+        ];
+        
+        function addLog(message) {
+            const time = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+            logEl.innerHTML += `<br>[${time}] ${message}`;
+            logEl.scrollTop = logEl.scrollHeight;
+            if (logEl.children.length > 30) logEl.removeChild(logEl.children[0]);
+        }
+        
+        function createItem(level, x = null, y = null) {
+            const item = document.createElement('div');
+            item.className = `item level-${level}`;
+            item.dataset.level = level;
+            item.dataset.id = nextId++;
+            
+            const emoji = itemEmojis[(level-1) % itemEmojis.length];
+            item.innerHTML = `<div>${emoji}<br><small>Lv.${level}</small></div>`;
+            
+            // Random position if not specified
+            if (x === null) x = 80 + Math.random() * (board.offsetWidth - 200);
+            if (y === null) y = 80 + Math.random() * (board.offsetHeight - 200);
+            
+            item.style.left = `${x}px`;
+            item.style.top = `${y}px`;
+            
+            // Click to select
+            item.addEventListener('click', () => toggleSelect(item));
+            
+            board.appendChild(item);
+            items.push(item);
+            
+            updateStats();
+            return item;
+        }
+        
+        let selectedItems = [];
+        
+        function toggleSelect(item) {
+            if (selectedItems.includes(item)) {
+                selectedItems = selectedItems.filter(i => i !== item);
+                item.style.boxShadow = '0 8px 20px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,255,255,0.4)';
+            } else {
+                if (selectedItems.length >= 2) {
+                    selectedItems[0].style.boxShadow = '0 8px 20px rgba(0,0,0,0.6), inset 0 0 20px rgba(255,255,255,0.4)';
+                    selectedItems.shift();
+                }
+                selectedItems.push(item);
+                item.style.boxShadow = '0 0 0 6px #ffd700, 0 8px 30px #ffd700';
+            }
+        }
+        
+        function mergeItems(item1, item2) {
+            if (!item1 || !item2) return;
+            const level = parseInt(item1.dataset.level);
+            
+            if (parseInt(item2.dataset.level) !== level) {
+                addLog("⚠️ 只能融合同品阶的灵器");
+                return;
+            }
+            
+            const newLevel = level + 1;
+            const x = (parseFloat(item1.style.left) + parseFloat(item2.style.left)) / 2;
+            const y = (parseFloat(item1.style.top) + parseFloat(item2.style.top)) / 2;
+            
+            // Remove old items
+            items = items.filter(i => i !== item1 && i !== item2);
+            item1.remove();
+            item2.remove();
+            selectedItems = [];
+            
+            const newItem = createItem(newLevel, x, y);
+            
+            // Reward
+            const reward = Math.floor(30 * level * level * qiMultiplier);
+            rmb += reward;
+            addLog(`✨ 成功融合 Lv.${level} → Lv.${newLevel}！ 获得 ${reward} ¥`);
+            
+            updateRMB();
+            updateStats();
+            
+            // Chance for extra reward on high levels
+            if (newLevel >= 5 && Math.random() < 0.4) {
+                rmb += 300;
+                addLog("🌟 天道青睐！额外气运加持");
+            }
+        }
+        
+        document.getElementById('mergeBtn').addEventListener('click', () => {
+            if (selectedItems.length === 2) {
+                mergeItems(selectedItems[0], selectedItems[1]);
+            } else {
+                addLog("请选择两个同品阶的灵器");
+            }
+        });
+        
+        document.getElementById('spawnBtn').addEventListener('click', () => {
+            if (rmb >= 50) {
+                rmb -= 50;
+                createItem(1);
+                updateRMB();
+                addLog("召唤初级灵器成功");
+            } else {
+                addLog("人民币不足");
+            }
+        });
+        
+        let autoMergeInterval = null;
+        
+        document.getElementById('autoMergeBtn').addEventListener('click', () => {
+            if (autoMergeEnabled) {
+                addLog("自动融合已开启");
+                return;
+            }
+            if (rmb >= 800) {
+                rmb -= 800;
+                autoMergeEnabled = true;
+                updateRMB();
+                addLog("🔄 自动融合已激活！每5秒自动尝试融合");
+                
+                autoMergeInterval = setInterval(() => {
+                    const groups = {};
+                    items.forEach(item => {
+                        const lvl = item.dataset.level;
+                        if (!groups[lvl]) groups[lvl] = [];
+                        groups[lvl].push(item);
+                    });
+                    
+                    for (let lvl in groups) {
+                        if (groups[lvl].length >= 2) {
+                            mergeItems(groups[lvl][0], groups[lvl][1]);
+                            break;
+                        }
+                    }
+                }, 5000);
+            } else {
+                addLog("人民币不足，无法开启自动融合");
+            }
+        });
+        
+        // Upgrades
+        document.getElementById('upgradeQiBtn').addEventListener('click', () => {
+            if (rmb >= 200) {
+                rmb -= 200;
+                qiMultiplier += 0.1;
+                updateRMB();
+                addLog(`气场提升！当前倍率 x${qiMultiplier.toFixed(1)}`);
+            }
+        });
+        
+        function updateRMB() {
+            rmbEl.textContent = Math.floor(rmb).toLocaleString('zh-CN');
+        }
+        
+        function updateStats() {
+            document.getElementById('totalItems').textContent = items.length;
+            let maxLvl = 1;
+            items.forEach(i => {
+                const l = parseInt(i.dataset.level);
+                if (l > maxLvl) maxLvl = l;
+            });
+            document.getElementById('maxLevel').textContent = maxLvl;
+        }
+        
+        // Passive income
+        function calculateIncome() {
+            let total = 0;
+            items.forEach(item => {
+                const lvl = parseInt(item.dataset.level);
+                total += Math.pow(lvl, 1.6) * 0.8;
+            });
+            return Math.floor(total * qiMultiplier);
+        }
+        
+        setInterval(() => {
+            incomePerSecond = calculateIncome();
+            document.getElementById('income').textContent = incomePerSecond;
+            rmb += incomePerSecond / 10; // 10 ticks per second
+            updateRMB();
+        }, 100);
+        
+        // Occasional free item
+        setInterval(() => {
+            if (Math.random() < 0.25 && items.length < 18) {
+                createItem(1);
+                addLog("天地灵气汇聚，免费生成初级灵器");
+            }
+        }, 14000);
+        
+        // Drag & drop support (bonus feature)
+        let draggedItem = null;
+        
+        board.addEventListener('dragover', e => e.preventDefault());
+        board.addEventListener('drop', e => {
+            e.preventDefault();
+            if (draggedItem) {
+                const rect = board.getBoundingClientRect();
+                draggedItem.style.left = `${e.clientX - rect.left - 45}px`;
+                draggedItem.style.top = `${e.clientY - rect.top - 45}px`;
+            }
+        });
+        
+        // Initial items
+        function initGame() {
+            createItem(1, 200, 180);
+            createItem(1, 380, 220);
+            createItem(2, 550, 150);
+            updateRMB();
+            addLog("游戏已初始化。祝你风生水起，财运亨通！");
+        }
+        
+        // Keyboard support
+        document.addEventListener('keydown', e => {
+            if (e.key === 'm' || e.key === 'M') {
+                if (selectedItems.length === 2) mergeItems(selectedItems[0], selectedItems[1]);
+            }
+        });
+        
+        // Start the game
+        window.onload = initGame;
+    </script>
+</body>
+</html>
